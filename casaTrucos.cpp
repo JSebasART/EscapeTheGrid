@@ -4,129 +4,116 @@
 #include <queue>      // Para usar una cola de prioridad (Dijkstra)
 #include <tuple>      // Útil para pares/triples
 #include <string>     // Para manipular strings las líneas o filas del laberinto
+
 using namespace std;
 
-// Estado que representa una posición en el laberinto
+#define pii pair<int,int>
+
+const int INF = 1e9;
+const int energiaMax = 5;
+
 struct State {
     int x, y;           // Coordenadas del jugador en el laberinto
-    int turn;
+    int cost;           // Costo acumulado (cantidad de pasos hasta hasta el momento)
     int energy;         // Energía acumulada (incrementa con cada paso)
     bool brokenWall;    // ¿la pared ha sido rota? true o false
-    int cost;           // Costo acumulado (cantidad de pasos hasta hasta el momento)
-    vector<pair<int, int>> way;
+    vector<pii> path;
 
-    bool operator>(const State& other) const { // acomodar dikjistra segun ejemplo de clase
+    bool operator>(const State& other) const {
         return cost > other.cost;
     }
 };
 
-// Simula si una celda está disponible en el turn current
-bool availableCell(const vector<string>& map, int x, int y, int turn, int N) {
-    if (map[x][y] == '#') {
-        // Simula una pared que se abre al turn N (ej. posición especial)
-        if (x == 2 && y == 2 && turn >= N) return true;
-        return false;
-    }
-    return true;
-}
-
-// Lee el map desde un file de texto
 vector<string> loadmapFile(const string& filename) {
     ifstream file(filename);
-    vector<string> map;
     string line;
-
+    vector<string> map;
     while (getline(file, line)) {
         if (!line.empty()) {
             map.push_back(line);
-        }
+        } 
     }
-
     return map;
 }
 
-// Aplica Dijkstra para encontrar el way desde 'S' hasta 'G'
-vector<pair<int, int>> dijkstraAlgorithm(const vector<string>& map, int maxEnergy= 5, int unlockN = 6) {
+// Aplica Dijkstra para encontrar el camino desde 'S' hasta 'G'
+vector<pii> dijkstraAlgorithm(const vector<string>& map, pii start, pii finish) {
     int n = map.size();
     int m = map[0].size();
 
-    pair<int, int> start, finish;
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < m; ++j) {
-            if (map[i][j] == 'S') start = {i, j};
-            if (map[i][j] == 'G') finish = {i, j};
-        }
-
+    // visited[x][y][energy][brokenWall]
     // 4D para evitar repetir States (x, y, energía, brokenWall)
-    vector<vector<vector<vector<bool>>>> visited(n, vector(m, vector(maxEnergy+ 1, vector(2, false))));
+    vector<vector<vector<vector<bool>>>> visited(n,
+        vector<vector<vector<bool>>>(m,
+        vector<vector<bool>>(energiaMax + 1,
+        vector<bool>(2, false))));
 
-    priority_queue<State, vector<State>, greater<>> pq;
-    State inicial = {start.first, start.second, 0, 0, false, 0, {{start.first, start.second}}};
-    pq.push(inicial);
+    priority_queue<State, vector<State>, greater<State>> pq;
+    pq.push({start.first, start.second, 0, 0, false, {start}});
 
     int dx[] = {-1, 1, 0, 0};
     int dy[] = {0, 0, -1, 1};
 
     while (!pq.empty()) {
-        State current = pq.top(); pq.pop();
-        int x = current.x, y = current.y, energy = current.energy;
-        bool brokenWall = current.brokenWall;
+        State u = pq.top(); pq.pop();
 
-        if (x == finish.first && y == finish.second) {
-            return current.way;
-        }
+        if (u.x == finish.first && u.y == finish.second)
+            return u.path;
 
-        if (visited[x][y][energy][brokenWall]) continue;
-        visited[x][y][energy][brokenWall] = true;
+        if (visited[u.x][u.y][u.energy][u.brokenWall]) continue;
+        visited[u.x][u.y][u.energy][u.brokenWall] = true;
 
-        for (int dir = 0; dir < 4; ++dir) {
-            int nx = x + dx[dir], ny = y + dy[dir];
+        for (int d = 0; d < 4; ++d) {
+            int nx = u.x + dx[d];
+            int ny = u.y + dy[d];
+
             if (nx < 0 || ny < 0 || nx >= n || ny >= m) continue;
 
-            char celda = map[nx][ny];
-            bool transitable = availableCell(map, nx, ny, current.turn + 1, unlockN);
+            char cell = map[nx][ny];
+            State nextCell = u;
+            nextCell.x = nx;
+            nextCell.y = ny;
+            nextCell.path.push_back({nx, ny});
+            nextCell.cost++;
 
-            if (transitable || celda == '.' || celda == 'G' || celda == 'S') {
-                State nextCell = current;
-                nextCell.x = nx;
-                nextCell.y = ny;
-                nextCell.turn++;
-                nextCell.energy = min(energy + 1, maxEnergy);
-                nextCell.cost++;
-                nextCell.way.push_back({nx, ny});
+            if (cell == '.' || cell == 'G') {
+                nextCell.energy = min(u.energy + 1, energiaMax);
                 pq.push(nextCell);
-            } else if (celda == '#' && energy >= maxEnergy&& !brokenWall) {
-                State nextCell = current;
-                nextCell.x = nx;
-                nextCell.y = ny;
-                nextCell.turn++;
+            } else if (cell == '#' && u.energy >= energiaMax && !u.brokenWall) {
                 nextCell.energy = 0;
                 nextCell.brokenWall = true;
-                nextCell.cost++;
-                nextCell.way.push_back({nx, ny});
                 pq.push(nextCell);
             }
         }
     }
 
-    return {}; // No hay way posible
+    return {}; // No hay camino
 }
 
 int main() {
-    string mazeFile = "maze.txt";
-    vector<string> map = loadmapFile(mazeFile);
+    vector<string> map = loadmapFile("maze.txt");
+    int filas = map.size();
+    int columnas = map[0].size();
 
-    if (map.empty()) {
-        cout << "Error: No se pudo cargar el file '" << mazeFile << "'\n";
+    pii start = {-1, -1}, finish = {-1, -1};
+
+    for (int i = 0; i < filas; ++i)
+        for (int j = 0; j < columnas; ++j) {
+            if (map[i][j] == 'S') start = {i, j};
+            if (map[i][j] == 'G') finish = {i, j};
+        }
+
+    if (start.first == -1 || finish.first == -1) {
+        cout << "No se encontró 'S' o 'G' en el mapa.\n";
         return 1;
     }
 
-    auto way = dijkstraAlgorithm(map);
+    vector<pii> way = dijkstraAlgorithm(map, start, finish);
 
     if (way.empty()) {
-        cout << "No se encontró un way desde S hasta G.\n";
+        cout << "No se encontró un camino desde S hasta G.\n";
     } else {
-        cout << "way encontrado:\n";
+        cout << "camino encontrado:\n";
         for (auto [x, y] : way)
             cout << "(" << x << ", " << y << ") ";
         cout << "\nTotal de pasos: " << way.size() - 1 << endl;
