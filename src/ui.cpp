@@ -209,10 +209,9 @@ void DrawGameScreen() {
     DrawRectangle(10, 10, static_cast<int>(50 * (energy/100.0f)), 40, ENERGY_FILL_COLOR);
     DrawRectangleLines(10, 10, 50, 40, DARKGRAY);
     if (canBreakWall) DrawRectangleLines(10, 10, 50, 40, ENERGY_READY_COLOR);
-    DrawText("Energia", 10, 55, 15, DARKGRAY);
 
     // Contador de pasos
-    DrawText(("Pasos: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
+    DrawText(("Turnos: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
     
     // Botón resolver
     DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, solvePath ? BUTTON_SELECTED : BUTTON_COLOR);

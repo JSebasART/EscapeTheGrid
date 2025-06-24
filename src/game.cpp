@@ -74,12 +74,6 @@ void InitializeGame() {
     canBreakWall = false;
     solvePath = false;
 
-    // Cargar texturas
-    playerTexture = LoadTexture("resources/sprites/player.png");
-    if (playerTexture.id <= 0) {
-        TraceLog(LOG_WARNING, "No se pudo cargar la textura del jugador!");
-    }
-
     // Cargar tema inicial
     LoadTheme(THEME_CASTLE);
 
