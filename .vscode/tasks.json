@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "cppbuild",
+      "label": "build all .cpp",
+      "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+      "args": [
+        "-fdiagnostics-color=always",
+        "-g",
+        // compile both source files:
+        "${fileDirname}\\main.cpp",
+        "${fileDirname}\\player.cpp",
+
+        // include directory (no embedded quotes):
+        "-I", "C:/c++ libs/SFML-3.0.0/include",
+
+        "-DSFML_STATIC",
+
+        // output:
+        "-o", "${fileDirname}\\${fileBasenameNoExtension}.exe",
+
+        // library path (no embedded quotes):
+        "-L", "C:/c++ libs/SFML-3.0.0/lib",
+        "-lsfml-graphics-s",
+        "-lsfml-window-s",
+        "-lsfml-system-s",
+        "-lopengl32",
+        "-lfreetype",
+        "-lwinmm",
+        "-lgdi32",
+
+        // Windows GUI subsystem:
+        "-mwindows"
+      ],
+      "options": {
+        "cwd": "${fileDirname}"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
