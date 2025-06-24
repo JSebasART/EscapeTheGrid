@@ -1,25 +1,30 @@
 #include "raylib.h"
 #include <vector>
+#include <string>
 
 // Constantes
 const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 800;
+const int SCREEN_HEIGHT = 860; // Altura aumentada a 860
 const int CELL_SIZE = 80;
+const int UI_HEIGHT = 60; // Altura para la barra de UI
 const Color PLAYER_COLOR = BLUE;
 const Color WALL_COLOR = DARKGRAY;
 const Color PATH_COLOR = LIGHTGRAY;
 const Color START_COLOR = GREEN;
 const Color END_COLOR = RED;
-const Color ITEM_COLOR = GOLD;
+const Color ITEM_COLOR = ORANGE; // Color naranja para coleccionables
 const Color BUTTON_COLOR = LIGHTGRAY;
 const Color BUTTON_SELECTED = SKYBLUE;
+const Color VICTORY_COLOR = Color{46, 204, 113, 255}; // Verde brillante
+const Color ENERGY_BAR_COLOR = DARKGRAY;
 
 enum GameScreen
 {
     MENU,
     GAME,
     PAUSE,
-    CONTROLS
+    CONTROLS,
+    VICTORY
 };
 
 // Representación del laberinto
@@ -48,13 +53,18 @@ int main()
 {
     // Inicializar ventana
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "La Casa de los Trucos");
+    SetExitKey(0); // Deshabilita ESC como tecla de salida
     SetTargetFPS(60);
 
     // Estado del juego
     GameScreen currentScreen = MENU;
     Player player = {0, 0};           // Posición inicial (S)
     int selectedOption = 0;           // Opción seleccionada en menús
+    int selectedWinOption = 0;        // Opción seleccionada en pantalla de victoria
     GameScreen previousScreen = MENU; // Pantalla anterior para volver de CONTROLS
+    int stepCount = 0;                // Contador de pasos
+    bool solvePath = false;           // Mostrar camino resuelto
+    int itemsCollected = 0;           // Contador de coleccionables recolectados
 
     // Encontrar la posición inicial (S) usando size_type
     for (size_type i = 0; i < maze.size(); i++)
@@ -69,9 +79,9 @@ int main()
         }
     }
 
-    // Coordenadas para centrar el laberinto
+    // Coordenadas para centrar el laberinto (con espacio para UI)
     int mazeOffsetX = (SCREEN_WIDTH - (static_cast<int>(maze[0].size()) * CELL_SIZE)) / 2;
-    int mazeOffsetY = (SCREEN_HEIGHT - (static_cast<int>(maze.size()) * CELL_SIZE)) / 2;
+    int mazeOffsetY = UI_HEIGHT + (SCREEN_HEIGHT - UI_HEIGHT - (static_cast<int>(maze.size()) * CELL_SIZE)) / 2;
 
     // Bucle principal del juego
     while (!WindowShouldClose())
@@ -80,7 +90,7 @@ int main()
         //---------------------------------------------------------------------
         switch (currentScreen)
         {
-        case MENU:
+        case MENU: {
             // Navegación con flechas o WASD
             if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
             {
@@ -97,6 +107,21 @@ int main()
                 switch (selectedOption)
                 {
                 case 0:
+                    // Resetear posición del jugador y contador de pasos
+                    for (size_type i = 0; i < maze.size(); i++)
+                    {
+                        for (size_type j = 0; j < maze[i].size(); j++)
+                        {
+                            if (maze[i][j] == 'S')
+                            {
+                                player.row = static_cast<int>(i);
+                                player.col = static_cast<int>(j);
+                            }
+                        }
+                    }
+                    stepCount = 0;
+                    solvePath = false;
+                    itemsCollected = 0; // Reiniciar contador de coleccionables
                     currentScreen = GAME;
                     break; // PLAY
                 case 1:
@@ -109,14 +134,18 @@ int main()
                 }
             }
             break;
-
-        case GAME:
+        }
+            
+        case GAME: {
             // Movimiento del jugador
+            bool moved = false;
             if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
             {
                 if (player.row > 0 && maze[player.row - 1][player.col] != '#')
                 {
                     player.row--;
+                    stepCount++;
+                    moved = true;
                 }
             }
             if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
@@ -125,6 +154,8 @@ int main()
                     maze[player.row + 1][player.col] != '#')
                 {
                     player.row++;
+                    stepCount++;
+                    moved = true;
                 }
             }
             if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
@@ -132,6 +163,8 @@ int main()
                 if (player.col > 0 && maze[player.row][player.col - 1] != '#')
                 {
                     player.col--;
+                    stepCount++;
+                    moved = true;
                 }
             }
             if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
@@ -140,7 +173,16 @@ int main()
                     maze[player.row][player.col + 1] != '#')
                 {
                     player.col++;
+                    stepCount++;
+                    moved = true;
                 }
+            }
+            
+            // Verificar si recogió un coleccionable
+            if (moved && maze[player.row][player.col] == 'K') {
+                // Reemplazar coleccionable con celda normal
+                maze[player.row][player.col] = '.';
+                itemsCollected++;
             }
 
             // Pausa con ESC
@@ -153,12 +195,22 @@ int main()
             // Verificar si llegó a la meta
             if (maze[player.row][player.col] == 'G')
             {
-                currentScreen = MENU;
-                player = {0, 0};
+                selectedWinOption = 0; // Resetear opción en pantalla de victoria
+                currentScreen = VICTORY;
+            }
+            
+            // Botón resolver con clic (toggle)
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                Vector2 mousePos = GetMousePosition();
+                Rectangle solveButton = {SCREEN_WIDTH - 160, 10, 150, 40};
+                if (CheckCollisionPointRec(mousePos, solveButton)) {
+                    solvePath = !solvePath; // Alternar estado
+                }
             }
             break;
-
-        case PAUSE:
+        }
+            
+        case PAUSE: {
             // Navegación con flechas o WASD
             if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
             {
@@ -183,7 +235,7 @@ int main()
                     break; // CONTROLS
                 case 2:
                     currentScreen = MENU; // EXIT TO MENU
-                    player = {0, 0};
+                    // No resetear posición aquí, se hará al volver a jugar
                     break;
                 }
             }
@@ -194,9 +246,9 @@ int main()
                 currentScreen = GAME;
             }
             break;
-
-        // MANEJAR EL CASO CONTROLS EN EL SWITCH DE ACTUALIZACIÓN
-        case CONTROLS:
+        }
+            
+        case CONTROLS: {
             // Solo hay una opción (VOLVER), seleccionada por defecto
             selectedOption = 0;
 
@@ -207,6 +259,63 @@ int main()
             }
             break;
         }
+            
+        case VICTORY: {
+            // Navegación con flechas o WASD
+            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || 
+                IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
+            {
+                selectedWinOption = (selectedWinOption + 1) % 2;
+            }
+
+            // Selección con ENTER
+            if (IsKeyPressed(KEY_ENTER))
+            {
+                if (selectedWinOption == 0) {
+                    // Siguiente nivel (por ahora reiniciamos el mismo)
+                    for (size_type i = 0; i < maze.size(); i++)
+                    {
+                        for (size_type j = 0; j < maze[i].size(); j++)
+                        {
+                            if (maze[i][j] == 'S')
+                            {
+                                player.row = static_cast<int>(i);
+                                player.col = static_cast<int>(j);
+                            }
+                        }
+                    }
+                    stepCount = 0;
+                    solvePath = false;
+                    itemsCollected = 0; // Reiniciar coleccionables
+                    currentScreen = GAME;
+                } else {
+                    currentScreen = MENU;
+                }
+            }
+            
+            // Volver al juego con ESC (opcional)
+            if (IsKeyPressed(KEY_ESCAPE))
+            {
+                // Por defecto seleccionamos "Siguiente nivel"
+                for (size_type i = 0; i < maze.size(); i++)
+                {
+                    for (size_type j = 0; j < maze[i].size(); j++)
+                    {
+                        if (maze[i][j] == 'S')
+                        {
+                            player.row = static_cast<int>(i);
+                            player.col = static_cast<int>(j);
+                        }
+                    }
+                }
+                stepCount = 0;
+                solvePath = false;
+                itemsCollected = 0; // Reiniciar coleccionables
+                currentScreen = GAME;
+            }
+            break;
+        }
+        }
         //---------------------------------------------------------------------
 
         // Dibujado
@@ -216,9 +325,9 @@ int main()
 
         switch (currentScreen)
         {
-        case MENU:
+        case MENU: {
             // Título
-            DrawText("ESCAPE THE GRID", SCREEN_WIDTH / 2 - MeasureText("ESCAPE THE GRID", 50) / 2, 150, 50, DARKGRAY);
+            DrawText("LA CASA DE LOS TRUCOS", SCREEN_WIDTH / 2 - MeasureText("LA CASA DE LOS TRUCOS", 50) / 2, 150, 50, DARKGRAY);
 
             // Botón PLAY
             DrawRectangle(SCREEN_WIDTH / 2 - 100, 300, 200, 60,
@@ -243,8 +352,25 @@ int main()
                      SCREEN_WIDTH / 2 - MeasureText("Use ARROWS/WASD to navigate, ENTER to select", 20) / 2,
                      550, 20, DARKGRAY);
             break;
+        }
+            
+        case GAME: {
+            // Barra de energía (rectángulo sin rellenar)
+            DrawRectangleLines(10, 10, 50, 40, ENERGY_BAR_COLOR);
+            // Contador de pasos (al lado del rectángulo)
+            DrawText(("Pasos: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
+            
+            // Botón Resolver
+            DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, 
+                          solvePath ? BUTTON_SELECTED : BUTTON_COLOR);
+            DrawText("RESOLVER", SCREEN_WIDTH - 155, 20, 20, DARKGRAY);
+            
+            // Mostrar coleccionable en el centro superior
+            if (itemsCollected > 0) {
+                DrawCircle(SCREEN_WIDTH / 2, 30, 15, ITEM_COLOR);
+                DrawText(TextFormat("x%d", itemsCollected), SCREEN_WIDTH / 2 + 20, 20, 20, DARKGRAY);
+            }
 
-        case GAME:
             // Dibujar laberinto
             for (size_type i = 0; i < maze.size(); i++)
             {
@@ -263,11 +389,13 @@ int main()
                     case 'G':
                         cellColor = END_COLOR;
                         break;
-                    case 'K':
-                        cellColor = ITEM_COLOR;
-                        break;
                     default:
                         cellColor = PATH_COLOR;
+                    }
+
+                    // Si está activada la solución y es un camino, marcar con color diferente
+                    if (solvePath && maze[i][j] == '.') {
+                        cellColor = Color{255, 107, 107, 255}; // Rojo claro para solución
                     }
 
                     DrawRectangle(
@@ -284,6 +412,16 @@ int main()
                         CELL_SIZE,
                         CELL_SIZE,
                         BLACK);
+                    
+                    // Dibujar coleccionable como bola naranja en celdas normales
+                    if (maze[i][j] == 'K') {
+                        DrawCircle(
+                            mazeOffsetX + j * CELL_SIZE + CELL_SIZE / 2,
+                            mazeOffsetY + i * CELL_SIZE + CELL_SIZE / 2,
+                            CELL_SIZE / 4,
+                            ITEM_COLOR
+                        );
+                    }
                 }
             }
 
@@ -294,63 +432,94 @@ int main()
                 CELL_SIZE / 3,
                 PLAYER_COLOR);
             break;
-
-        case PAUSE:
+        }
+            
+        case PAUSE: {
             // Fondo semitransparente
             DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.5f));
 
             // Panel de pausa
             DrawRectangle(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 150, 300, 300, LIGHTGRAY);
-            DrawText("PAUSE", SCREEN_WIDTH / 2 - MeasureText("PAUSE", 40) / 2, SCREEN_HEIGHT / 2 - 130, 40, DARKGRAY);
+            DrawText("PAUSA", SCREEN_WIDTH / 2 - MeasureText("PAUSA", 40) / 2, SCREEN_HEIGHT / 2 - 130, 40, DARKGRAY);
 
             // Botón CONTINUE
             DrawRectangle(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 60, 200, 50,
                           selectedOption == 0 ? BUTTON_SELECTED : BUTTON_COLOR);
-            DrawText("CONTINUE", SCREEN_WIDTH / 2 - MeasureText("CONTINUE", 20) / 2,
+            DrawText("CONTINUAR", SCREEN_WIDTH / 2 - MeasureText("CONTINUAR", 20) / 2,
                      SCREEN_HEIGHT / 2 - 45, 20, selectedOption == 0 ? WHITE : DARKGRAY);
 
             // Botón CONTROLS
             DrawRectangle(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2, 200, 50,
                           selectedOption == 1 ? BUTTON_SELECTED : BUTTON_COLOR);
-            DrawText("CONTROLS", SCREEN_WIDTH / 2 - MeasureText("CONTROLS", 20) / 2,
+            DrawText("CONTROLES", SCREEN_WIDTH / 2 - MeasureText("CONTROLES", 20) / 2,
                      SCREEN_HEIGHT / 2 + 15, 20, selectedOption == 1 ? WHITE : DARKGRAY);
 
             // Botón EXIT TO MENU
             DrawRectangle(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 + 60, 200, 50,
                           selectedOption == 2 ? BUTTON_SELECTED : BUTTON_COLOR);
-            DrawText("MAIN MENU", SCREEN_WIDTH / 2 - MeasureText("MAIN MENU", 20) / 2,
+            DrawText("MENU PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENU PRINCIPAL", 20) / 2,
                      SCREEN_HEIGHT / 2 + 75, 20, selectedOption == 2 ? WHITE : DARKGRAY);
 
             // Instrucciones de navegación
-            DrawText("Use ARROWS/WASD to navigate, ENTER to select, ESC to resume",
-                     SCREEN_WIDTH / 2 - MeasureText("Use ARROWS/WASD to navigate, ENTER to select, ESC to resume", 20) / 2,
+            DrawText("Usa FLECHAS/WASD para navegar, ENTER para seleccionar, ESC para reanudar",
+                     SCREEN_WIDTH / 2 - MeasureText("Usa FLECHAS/WASD para navegar, ENTER para seleccionar, ESC para reanudar", 20) / 2,
                      SCREEN_HEIGHT / 2 + 150, 20, DARKGRAY);
             break;
-
-        case CONTROLS:
+        }
+            
+        case CONTROLS: {
             // Fondo
             ClearBackground(RAYWHITE);
 
             // Título
-            DrawText("CONTROLS", SCREEN_WIDTH / 2 - MeasureText("CONTROLS", 50) / 2, 100, 50, DARKGRAY);
+            DrawText("CONTROLES", SCREEN_WIDTH / 2 - MeasureText("CONTROLES", 50) / 2, 100, 50, DARKGRAY);
 
             // Instrucciones
-            DrawText("PLAYER MOVEMENT:", 100, 200, 30, DARKGRAY);
-            DrawText("- Arrow keys: Up, Down, Left, Right", 120, 250, 25, DARKGRAY);
-            DrawText("- WASD: Alternative movement keys", 120, 290, 25, DARKGRAY);
+            DrawText("MOVIMIENTO DEL JUGADOR:", 100, 200, 30, DARKGRAY);
+            DrawText("- Flechas: Arriba, Abajo, Izquierda, Derecha", 120, 250, 25, DARKGRAY);
+            DrawText("- WASD: Alternativa para movimiento", 120, 290, 25, DARKGRAY);
 
-            DrawText("MENU NAVIGATION:", 100, 350, 30, DARKGRAY);
-            DrawText("- Arrow keys/WASD: Move between options", 120, 400, 25, DARKGRAY);
-            DrawText("- ENTER: Select option", 120, 440, 25, DARKGRAY);
+            DrawText("NAVEGACIÓN DE MENÚ:", 100, 350, 30, DARKGRAY);
+            DrawText("- Flechas/WASD: Mover entre opciones", 120, 400, 25, DARKGRAY);
+            DrawText("- ENTER: Seleccionar opción", 120, 440, 25, DARKGRAY);
 
-            DrawText("GAME CONTROLS:", 100, 500, 30, DARKGRAY);
-            DrawText("- ESC: Open pause menu", 120, 550, 25, DARKGRAY);
+            DrawText("CONTROLES DE JUEGO:", 100, 500, 30, DARKGRAY);
+            DrawText("- ESC: Abrir menú de pausa", 120, 550, 25, DARKGRAY);
+            DrawText("- Click en RESOLVER: Alternar camino solución", 120, 590, 25, DARKGRAY);
 
             // Botón VOLVER (siempre seleccionado)
             DrawRectangle(SCREEN_WIDTH / 2 - 100, 650, 200, 60, BUTTON_SELECTED);
-            DrawText("BACK (ENTER/ESC)", SCREEN_WIDTH / 2 - MeasureText("BACK (ENTER/ESC)", 20) / 2,
+            DrawText("VOLVER (ENTER/ESC)", SCREEN_WIDTH / 2 - MeasureText("VOLVER (ENTER/ESC)", 20) / 2,
                      665, 20, WHITE);
             break;
+        }
+            
+        case VICTORY: {
+            // Fondo de victoria
+            DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(VICTORY_COLOR, 0.9f));
+            
+            // Mensaje de victoria
+            DrawText("¡GANASTE!", SCREEN_WIDTH / 2 - MeasureText("¡GANASTE!", 70) / 2, 
+                     SCREEN_HEIGHT / 2 - 150, 70, WHITE);
+            
+            // Botón SIGUIENTE NIVEL
+            DrawRectangle(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2, 400, 60,
+                          selectedWinOption == 0 ? BUTTON_SELECTED : BUTTON_COLOR);
+            DrawText("SIGUIENTE NIVEL", SCREEN_WIDTH / 2 - MeasureText("SIGUIENTE NIVEL", 30) / 2, 
+                     SCREEN_HEIGHT / 2 + 15, 30, selectedWinOption == 0 ? WHITE : DARKGRAY);
+            
+            // Botón MENÚ PRINCIPAL
+            DrawRectangle(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2 + 100, 400, 60,
+                          selectedWinOption == 1 ? BUTTON_SELECTED : BUTTON_COLOR);
+            DrawText("MENÚ PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENÚ PRINCIPAL", 30) / 2, 
+                     SCREEN_HEIGHT / 2 + 115, 30, selectedWinOption == 1 ? WHITE : DARKGRAY);
+            
+            // Instrucciones de navegación
+            DrawText("Usa FLECHAS IZQUIERDA/DERECHA para cambiar opción, ENTER para seleccionar",
+                     SCREEN_WIDTH / 2 - MeasureText("Usa FLECHAS IZQUIERDA/DERECHA para cambiar opción, ENTER para seleccionar", 20) / 2,
+                     SCREEN_HEIGHT - 50, 20, WHITE);
+            break;
+        }
         }
 
         EndDrawing();
