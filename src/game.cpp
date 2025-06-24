@@ -16,6 +16,7 @@ bool canBreakWall = false;
 int lastDirection = 0;
 bool solvePath = false;
 std::vector<std::pair<int, int>> solutionPath;
+Texture2D controlsTexture;
 
 // Temáticas
 Theme currentTheme = THEME_CASTLE;
@@ -77,9 +78,15 @@ void InitializeGame() {
     // Cargar tema inicial
     LoadTheme(THEME_CASTLE);
 
-    playerTexture = LoadTexture("resources/spritesheet.png");
+    playerTexture = LoadTexture("resources/player.png");
     if (playerTexture.id <= 0) {
         TraceLog(LOG_WARNING, "No se pudo cargar la textura del jugador!");
+    }
+
+    // Cargar textura de controles
+    controlsTexture = LoadTexture("resources/controls.png");
+    if (controlsTexture.id == 0) {
+        TraceLog(LOG_WARNING, "No se pudo cargar la textura de controles!");
     }
 }
 
@@ -133,4 +140,9 @@ void CleanupGame() {
     
     // Descargar otras texturas
     UnloadTexture(playerTexture);
+
+    // Descargar textura de controles
+    if (controlsTexture.id != 0) {
+        UnloadTexture(controlsTexture);
+    }
 }

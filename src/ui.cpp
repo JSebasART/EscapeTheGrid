@@ -169,6 +169,7 @@ void UpdateControlsScreen() {
 
     if (IsKeyPressed(KEY_ENTER)) {
         currentScreen = previousScreen;
+        return;
     }
 }
 
@@ -194,13 +195,13 @@ void DrawMenu() {
     DrawText("LA CASA DE LOS TRUCOS", SCREEN_WIDTH / 2 - MeasureText("LA CASA DE LOS TRUCOS", 50) / 2, 150, 50, DARKGRAY);
 
     DrawRectangle(SCREEN_WIDTH / 2 - 100, 300, 200, 60, selectedOption == 0 ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("PLAY", SCREEN_WIDTH / 2 - MeasureText("PLAY", 30) / 2, 315, 30, selectedOption == 0 ? WHITE : DARKGRAY);
+    DrawText("JUGAR", SCREEN_WIDTH / 2 - MeasureText("JUGAR", 30) / 2, 315, 30, selectedOption == 0 ? WHITE : DARKGRAY);
 
     DrawRectangle(SCREEN_WIDTH / 2 - 100, 380, 200, 60, selectedOption == 1 ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("CONTROLS", SCREEN_WIDTH / 2 - MeasureText("CONTROLS", 30) / 2, 395, 30, selectedOption == 1 ? WHITE : DARKGRAY);
+    DrawText("CONTROLES", SCREEN_WIDTH / 2 - MeasureText("CONTROLES", 30) / 2, 395, 30, selectedOption == 1 ? WHITE : DARKGRAY);
 
     DrawRectangle(SCREEN_WIDTH / 2 - 100, 460, 200, 60, selectedOption == 2 ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("EXIT", SCREEN_WIDTH / 2 - MeasureText("EXIT", 30) / 2, 475, 30, selectedOption == 2 ? WHITE : DARKGRAY);
+    DrawText("SALIR", SCREEN_WIDTH / 2 - MeasureText("SALIR", 30) / 2, 475, 30, selectedOption == 2 ? WHITE : DARKGRAY);
 }
 
 void DrawGameScreen() {
@@ -211,7 +212,7 @@ void DrawGameScreen() {
     if (canBreakWall) DrawRectangleLines(10, 10, 50, 40, ENERGY_READY_COLOR);
 
     // Contador de pasos
-    DrawText(("Turnos: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
+    DrawText(("TURNOS: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
     
     // Botón resolver
     DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, solvePath ? BUTTON_SELECTED : BUTTON_COLOR);
@@ -232,7 +233,7 @@ void DrawGameScreen() {
         0.0f,
         WHITE
     );
-    DrawText(TextFormat("x%d", itemsCollected), SCREEN_WIDTH / 2 + 20, 20, 20, DARKGRAY);
+    DrawText(TextFormat("X%d", itemsCollected), SCREEN_WIDTH / 2 + 20, 20, 20, DARKGRAY);
 
     // Calcular offsets si no se han calculado
     if (mazeOffsetX == 0 && mazeOffsetY == 0) {
@@ -377,37 +378,43 @@ void DrawPauseScreen() {
     DrawText("MENU PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENU PRINCIPAL", 20) / 2, SCREEN_HEIGHT / 2 + 75, 20, selectedOption == 2 ? WHITE : DARKGRAY);
 }
 
-void DrawControlsScreen() {
-    ClearBackground(RAYWHITE);
-    DrawText("CONTROLES", SCREEN_WIDTH / 2 - MeasureText("CONTROLES", 50) / 2, 100, 50, DARKGRAY);
-
-    DrawText("MOVIMIENTO DEL JUGADOR:", 100, 200, 30, DARKGRAY);
-    DrawText("- Flechas: Arriba, Abajo, Izquierda, Derecha", 120, 250, 25, DARKGRAY);
-    DrawText("- WASD: Alternativa para movimiento", 120, 290, 25, DARKGRAY);
+void DrawControlsScreen() {  
+    // Dibujar la imagen de controles
+    if (controlsTexture.id != 0) {
+        // Calcular escala para que se ajuste al 90% del ancho de la pantalla
+        float scale = static_cast<float>(SCREEN_WIDTH * 0.9) / controlsTexture.width;
+        int scaledHeight = static_cast<int>(controlsTexture.height * scale);
+        
+        // Centrar verticalmente, dejando espacio para el botón
+        int yPos = (SCREEN_HEIGHT - scaledHeight - 100) / 2;
+        
+        DrawTextureEx(
+            controlsTexture,
+            Vector2{
+                static_cast<float>(SCREEN_WIDTH - controlsTexture.width * scale) / 2,
+                static_cast<float>(yPos)
+            },
+            0.0f,
+            scale,
+            WHITE
+        );
+    } else {
+        // Fallback: mostrar mensaje de error
+        DrawText("ERROR: Imagen de controles no disponible", 50, 50, 30, RED);
+    }
     
-    DrawText("ROMPER PAREDES:", 100, 340, 30, DARKGRAY);
-    DrawText("- Espacio: Romper pared (requiere energía completa)", 120, 390, 25, DARKGRAY);
-    DrawText("- La energía se carga al moverse", 120, 430, 25, DARKGRAY);
-
-    DrawText("NAVEGACIÓN DE MENÚ:", 100, 480, 30, DARKGRAY);
-    DrawText("- Flechas/WASD: Mover entre opciones", 120, 530, 25, DARKGRAY);
-    DrawText("- ENTER: Seleccionar opción", 120, 570, 25, DARKGRAY);
-
-    DrawText("CONTROLES DE JUEGO:", 100, 620, 30, DARKGRAY);
-    DrawText("- ESC: Abrir menú de pausa", 120, 670, 25, DARKGRAY);
-    DrawText("- Click en RESOLVER: Mostrar camino solución", 120, 710, 25, DARKGRAY);
-
+    // Botón VOLVER
     DrawRectangle(SCREEN_WIDTH / 2 - 100, 750, 200, 60, BUTTON_SELECTED);
-    DrawText("VOLVER", SCREEN_WIDTH / 2 - MeasureText("VOLVER", 20) / 2, 765, 20, WHITE);
+    DrawText("REGRESAR", SCREEN_WIDTH / 2 - MeasureText("REGRESAR", 20) / 2, 765, 20, WHITE);
 }
 
 void DrawVictoryScreen() {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(VICTORY_COLOR, 0.9f));
-    DrawText("¡GANASTE!", SCREEN_WIDTH / 2 - MeasureText("¡GANASTE!", 70) / 2, SCREEN_HEIGHT / 2 - 150, 70, WHITE);
+    DrawText("¡LO LOGRASTE!", SCREEN_WIDTH / 2 - MeasureText("¡LO LOGRASTE!", 70) / 2, SCREEN_HEIGHT / 2 - 150, 70, WHITE);
     
     if (itemsCollected > 0) {
-        DrawText(TextFormat("¡Recolectaste %d coleccionable(s)!", itemsCollected),
-                 SCREEN_WIDTH / 2 - MeasureText(TextFormat("¡Recolectaste %d coleccionable(s)!", itemsCollected), 30) / 2,
+        DrawText(TextFormat("¡Recolectaste %d item!", itemsCollected),
+                 SCREEN_WIDTH / 2 - MeasureText(TextFormat("¡Recolectaste %d item!", itemsCollected), 30) / 2,
                  SCREEN_HEIGHT / 2 - 80, 30, WHITE);
     }
     
@@ -416,5 +423,5 @@ void DrawVictoryScreen() {
     DrawText("JUGAR DE NUEVO", SCREEN_WIDTH / 2 - MeasureText("JUGAR DE NUEVO", 30) / 2, SCREEN_HEIGHT / 2 + 15, 30, selectedWinOption == 0 ? WHITE : DARKGRAY);
     
     DrawRectangle(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2 + 100, 400, 60, selectedWinOption == 1 ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("MENÚ PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENÚ PRINCIPAL", 30) / 2, SCREEN_HEIGHT / 2 + 115, 30, selectedWinOption == 1 ? WHITE : DARKGRAY);
+    DrawText("MENU PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENU PRINCIPAL", 30) / 2, SCREEN_HEIGHT / 2 + 115, 30, selectedWinOption == 1 ? WHITE : DARKGRAY);
 }

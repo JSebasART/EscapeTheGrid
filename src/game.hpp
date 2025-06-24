@@ -72,6 +72,7 @@ extern bool solvePath;
 extern std::vector<std::pair<int, int>> solutionPath;
 extern Theme currentTheme;
 extern ThemeAssets currentThemeAssets;
+extern Texture2D controlsTexture;
 
 // Variables para animación
 extern Texture2D playerTexture;
