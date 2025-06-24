@@ -7,8 +7,7 @@
 int mazeOffsetX = 0;
 int mazeOffsetY = 0;
 
-// Implementación de funciones de actualización --------------------------------------------------------------------------------------
-// MENÚ PRINCIPAL
+// Implementación de funciones de actualización
 void UpdateMenu() {
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         selectedOption = (selectedOption + 1) % 3;
@@ -34,7 +33,6 @@ void UpdateMenu() {
     }
 }
 
-// JUEGO
 void UpdateGameScreen() {
     // Movimiento del jugador
     bool moved = false;
@@ -142,7 +140,6 @@ void UpdateGameScreen() {
     }
 }
 
-// MENÚ DE PAUSA
 void UpdatePauseScreen() {
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         selectedOption = (selectedOption + 1) % 3;
@@ -167,7 +164,6 @@ void UpdatePauseScreen() {
     }
 }
 
-// PANTALLA DE CONTROLES
 void UpdateControlsScreen() {
     selectedOption = 0;
 
@@ -176,7 +172,6 @@ void UpdateControlsScreen() {
     }
 }
 
-// PANTALLA DE GANADOR
 void UpdateVictoryScreen() {
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || 
         IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
@@ -194,8 +189,7 @@ void UpdateVictoryScreen() {
     }
 }
 
-// Implementación de funciones de dibujo ---------------------------------------------------------------------------------------
-// MENÚ PRINCIPAL
+// Implementación de funciones de dibujo
 void DrawMenu() {
     DrawText("LA CASA DE LOS TRUCOS", SCREEN_WIDTH / 2 - MeasureText("LA CASA DE LOS TRUCOS", 50) / 2, 150, 50, DARKGRAY);
 
@@ -209,7 +203,6 @@ void DrawMenu() {
     DrawText("EXIT", SCREEN_WIDTH / 2 - MeasureText("EXIT", 30) / 2, 475, 30, selectedOption == 2 ? WHITE : DARKGRAY);
 }
 
-// JUEGO
 void DrawGameScreen() {
     // Barra de energía
     DrawRectangle(10, 10, 50, 40, LIGHTGRAY);
@@ -225,8 +218,21 @@ void DrawGameScreen() {
     DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, solvePath ? BUTTON_SELECTED : BUTTON_COLOR);
     DrawText("RESOLVER", SCREEN_WIDTH - 155, 20, 20, DARKGRAY);
     
-    // Coleccionables
-    DrawCircle(SCREEN_WIDTH / 2, 30, 15, ITEM_COLOR);
+    // Coleccionables - ahora con textura
+    Rectangle itemUIRect = {
+        static_cast<float>(SCREEN_WIDTH / 2 - 15),
+        15.0f,
+        30.0f,
+        30.0f
+    };
+    DrawTexturePro(
+        currentThemeAssets.item,
+        (Rectangle){0, 0, (float)currentThemeAssets.item.width, (float)currentThemeAssets.item.height},
+        itemUIRect,
+        (Vector2){0, 0},
+        0.0f,
+        WHITE
+    );
     DrawText(TextFormat("x%d", itemsCollected), SCREEN_WIDTH / 2 + 20, 20, 20, DARKGRAY);
 
     // Calcular offsets si no se han calculado
@@ -235,44 +241,83 @@ void DrawGameScreen() {
         mazeOffsetY = UI_HEIGHT + (SCREEN_HEIGHT - UI_HEIGHT - (static_cast<int>(maze.size()) * CELL_SIZE)) / 2;
     }
 
-    // Dibujar laberinto
+    // Dibujar laberinto con texturas temáticas
     for (size_t i = 0; i < maze.size(); i++) {
         for (size_t j = 0; j < maze[i].size(); j++) {
-            Color cellColor;
+            // Rectángulo destino para esta celda
+            Rectangle destRect = {
+                static_cast<float>(mazeOffsetX + j * CELL_SIZE),
+                static_cast<float>(mazeOffsetY + i * CELL_SIZE),
+                static_cast<float>(CELL_SIZE),
+                static_cast<float>(CELL_SIZE)
+            };
+
+            // 1. Dibujar fondo (camino) para todas las celdas
+            DrawTexturePro(
+                currentThemeAssets.path,
+                (Rectangle){0, 0, (float)currentThemeAssets.path.width, (float)currentThemeAssets.path.height},
+                destRect,
+                (Vector2){0, 0},
+                0.0f,
+                WHITE
+            );
+
+            // 2. Dibujar elementos específicos sobre el fondo
             switch (maze[i][j]) {
-                case '#': cellColor = WALL_COLOR; break;
-                case 'S': cellColor = START_COLOR; break;
-                case 'G': cellColor = END_COLOR; break;
-                default: cellColor = PATH_COLOR;
-            }
-
-            DrawRectangle(
-                mazeOffsetX + static_cast<int>(j) * CELL_SIZE,
-                mazeOffsetY + static_cast<int>(i) * CELL_SIZE,
-                CELL_SIZE,
-                CELL_SIZE,
-                cellColor);
-
-            DrawRectangleLines(
-                mazeOffsetX + static_cast<int>(j) * CELL_SIZE,
-                mazeOffsetY + static_cast<int>(i) * CELL_SIZE,
-                CELL_SIZE,
-                CELL_SIZE,
-                BLACK);
-            
-            // Coleccionable
-            if (maze[i][j] == 'K') {
-                DrawCircle(
-                    mazeOffsetX + j * CELL_SIZE + CELL_SIZE / 2,
-                    mazeOffsetY + i * CELL_SIZE + CELL_SIZE / 2,
-                    CELL_SIZE / 4,
-                    ITEM_COLOR
-                );
+                case '#': // Pared
+                    DrawTexturePro(
+                        currentThemeAssets.wall,
+                        (Rectangle){0, 0, (float)currentThemeAssets.wall.width, (float)currentThemeAssets.wall.height},
+                        destRect,
+                        (Vector2){0, 0},
+                        0.0f,
+                        WHITE
+                    );
+                    break;
+                    
+                case 'S': // Inicio
+                    DrawTexturePro(
+                        currentThemeAssets.start,
+                        (Rectangle){0, 0, (float)currentThemeAssets.start.width, (float)currentThemeAssets.start.height},
+                        destRect,
+                        (Vector2){0, 0},
+                        0.0f,
+                        WHITE
+                    );
+                    break;
+                    
+                case 'G': // Meta
+                    DrawTexturePro(
+                        currentThemeAssets.end,
+                        (Rectangle){0, 0, (float)currentThemeAssets.end.width, (float)currentThemeAssets.end.height},
+                        destRect,
+                        (Vector2){0, 0},
+                        0.0f,
+                        WHITE
+                    );
+                    break;
+                    
+                case 'K': // Ítem
+                    // Dibujar ítem centrado en la celda
+                    DrawTexturePro(
+                        currentThemeAssets.item,
+                        (Rectangle){0, 0, (float)currentThemeAssets.item.width, (float)currentThemeAssets.item.height},
+                        (Rectangle){
+                            destRect.x + destRect.width/4,
+                            destRect.y + destRect.height/4,
+                            destRect.width/2,
+                            destRect.height/2
+                        },
+                        (Vector2){0, 0},
+                        0.0f,
+                        WHITE
+                    );
+                    break;
             }
         }
     }
 
-    // Camino solución
+    // Dibujar camino solución
     if (solvePath && !solutionPath.empty()) {
         for (const auto& point : solutionPath) {
             int i = point.first;
@@ -289,8 +334,7 @@ void DrawGameScreen() {
     }
 
     // Dibujar jugador con sprite sheet
-    if (playerTexture.id > 0) { // Solo si la textura es válida
-        // Calcular tamaño de frame CORREGIDO (usar int para evitar decimales)
+    if (playerTexture.id > 0) {
         int frameWidth = playerTexture.width / 2;
         int frameHeight = playerTexture.height;
         
@@ -319,7 +363,6 @@ void DrawGameScreen() {
     }
 }
 
-// MENÚ DE PAUSA
 void DrawPauseScreen() {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.5f));
     DrawRectangle(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 150, 300, 300, LIGHTGRAY);
@@ -335,7 +378,6 @@ void DrawPauseScreen() {
     DrawText("MENU PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENU PRINCIPAL", 20) / 2, SCREEN_HEIGHT / 2 + 75, 20, selectedOption == 2 ? WHITE : DARKGRAY);
 }
 
-// PANTALLA DE CONTROLES
 void DrawControlsScreen() {
     ClearBackground(RAYWHITE);
     DrawText("CONTROLES", SCREEN_WIDTH / 2 - MeasureText("CONTROLES", 50) / 2, 100, 50, DARKGRAY);
@@ -360,7 +402,6 @@ void DrawControlsScreen() {
     DrawText("VOLVER", SCREEN_WIDTH / 2 - MeasureText("VOLVER", 20) / 2, 765, 20, WHITE);
 }
 
-// PANTALLA DE GANADOR
 void DrawVictoryScreen() {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(VICTORY_COLOR, 0.9f));
     DrawText("¡GANASTE!", SCREEN_WIDTH / 2 - MeasureText("¡GANASTE!", 70) / 2, SCREEN_HEIGHT / 2 - 150, 70, WHITE);
