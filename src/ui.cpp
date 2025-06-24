@@ -7,7 +7,8 @@
 int mazeOffsetX = 0;
 int mazeOffsetY = 0;
 
-// Implementación de funciones de actualización
+// Implementación de funciones de actualización --------------------------------------------------------------------------------------
+// MENÚ PRINCIPAL
 void UpdateMenu() {
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         selectedOption = (selectedOption + 1) % 3;
@@ -33,6 +34,7 @@ void UpdateMenu() {
     }
 }
 
+// JUEGO
 void UpdateGameScreen() {
     // Movimiento del jugador
     bool moved = false;
@@ -140,6 +142,7 @@ void UpdateGameScreen() {
     }
 }
 
+// MENÚ DE PAUSA
 void UpdatePauseScreen() {
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         selectedOption = (selectedOption + 1) % 3;
@@ -164,6 +167,7 @@ void UpdatePauseScreen() {
     }
 }
 
+// PANTALLA DE CONTROLES
 void UpdateControlsScreen() {
     selectedOption = 0;
 
@@ -172,6 +176,7 @@ void UpdateControlsScreen() {
     }
 }
 
+// PANTALLA DE GANADOR
 void UpdateVictoryScreen() {
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || 
         IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
@@ -189,7 +194,8 @@ void UpdateVictoryScreen() {
     }
 }
 
-// Implementación de funciones de dibujo
+// Implementación de funciones de dibujo ---------------------------------------------------------------------------------------
+// MENÚ PRINCIPAL
 void DrawMenu() {
     DrawText("LA CASA DE LOS TRUCOS", SCREEN_WIDTH / 2 - MeasureText("LA CASA DE LOS TRUCOS", 50) / 2, 150, 50, DARKGRAY);
 
@@ -203,6 +209,7 @@ void DrawMenu() {
     DrawText("EXIT", SCREEN_WIDTH / 2 - MeasureText("EXIT", 30) / 2, 475, 30, selectedOption == 2 ? WHITE : DARKGRAY);
 }
 
+// JUEGO
 void DrawGameScreen() {
     // Barra de energía
     DrawRectangle(10, 10, 50, 40, LIGHTGRAY);
@@ -312,6 +319,7 @@ void DrawGameScreen() {
     }
 }
 
+// MENÚ DE PAUSA
 void DrawPauseScreen() {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.5f));
     DrawRectangle(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 150, 300, 300, LIGHTGRAY);
@@ -327,6 +335,7 @@ void DrawPauseScreen() {
     DrawText("MENU PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENU PRINCIPAL", 20) / 2, SCREEN_HEIGHT / 2 + 75, 20, selectedOption == 2 ? WHITE : DARKGRAY);
 }
 
+// PANTALLA DE CONTROLES
 void DrawControlsScreen() {
     ClearBackground(RAYWHITE);
     DrawText("CONTROLES", SCREEN_WIDTH / 2 - MeasureText("CONTROLES", 50) / 2, 100, 50, DARKGRAY);
@@ -351,6 +360,7 @@ void DrawControlsScreen() {
     DrawText("VOLVER", SCREEN_WIDTH / 2 - MeasureText("VOLVER", 20) / 2, 765, 20, WHITE);
 }
 
+// PANTALLA DE GANADOR
 void DrawVictoryScreen() {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(VICTORY_COLOR, 0.9f));
     DrawText("¡GANASTE!", SCREEN_WIDTH / 2 - MeasureText("¡GANASTE!", 70) / 2, SCREEN_HEIGHT / 2 - 150, 70, WHITE);
