@@ -73,12 +73,13 @@ extern std::vector<std::pair<int, int>> solutionPath;
 extern Theme currentTheme;
 extern ThemeAssets currentThemeAssets;
 extern Texture2D controlsTexture;
+extern Texture2D menuBackgroundTexture;
+extern Texture2D victoryBgTexture;
 
-// Variables para animación
-extern Texture2D playerTexture;
-extern int playerFrame;
-extern float animationTimer;
-extern const float FRAME_TIME;
+extern Texture2D playerUp;
+extern Texture2D playerDown;
+extern Texture2D playerLeft;
+extern Texture2D playerRight;
 
 // Funciones principales
 void InitializeGame();

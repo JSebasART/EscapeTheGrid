@@ -17,16 +17,17 @@ int lastDirection = 0;
 bool solvePath = false;
 std::vector<std::pair<int, int>> solutionPath;
 Texture2D controlsTexture;
+Texture2D menuBackgroundTexture;
+Texture2D victoryBgTexture;
 
 // Temáticas
-Theme currentTheme = THEME_CASTLE;
+Theme currentTheme = THEME_ICE;
 ThemeAssets currentThemeAssets;
 
-// Animación
-Texture2D playerTexture;
-int playerFrame = 0;
-float animationTimer = 0.0f;
-const float FRAME_TIME = 0.4f;
+Texture2D playerUp;
+Texture2D playerDown;
+Texture2D playerLeft;
+Texture2D playerRight;
 
 void LoadTheme(Theme theme) {
     // Descargar texturas anteriores si existen
@@ -76,17 +77,33 @@ void InitializeGame() {
     solvePath = false;
 
     // Cargar tema inicial
-    LoadTheme(THEME_CASTLE);
+    LoadTheme(THEME_ICE);
 
-    playerTexture = LoadTexture("resources/player.png");
-    if (playerTexture.id <= 0) {
-        TraceLog(LOG_WARNING, "No se pudo cargar la textura del jugador!");
-    }
+    playerUp = LoadTexture("resources/player-up.png");
+    playerDown = LoadTexture("resources/player-down.png");
+    playerLeft = LoadTexture("resources/player-left.png");
+    playerRight = LoadTexture("resources/player-right.png");
+
+    // Verificar carga
+    if (playerUp.id <= 0) TraceLog(LOG_WARNING, "No se pudo cargar player_up!");
+    if (playerDown.id <= 0) TraceLog(LOG_WARNING, "No se pudo cargar player_down!");
+    if (playerLeft.id <= 0) TraceLog(LOG_WARNING, "No se pudo cargar player_left!");
+    if (playerRight.id <= 0) TraceLog(LOG_WARNING, "No se pudo cargar player_right!");
 
     // Cargar textura de controles
     controlsTexture = LoadTexture("resources/controls.png");
     if (controlsTexture.id == 0) {
         TraceLog(LOG_WARNING, "No se pudo cargar la textura de controles!");
+    }
+
+    menuBackgroundTexture = LoadTexture("resources/screen.png");
+    if (menuBackgroundTexture.id == 0) {
+        TraceLog(LOG_WARNING, "No se pudo cargar la textura de fondo del menú!");
+    }
+
+    victoryBgTexture = LoadTexture("resources/winner.png");
+    if (victoryBgTexture.id == 0) {
+        TraceLog(LOG_WARNING, "No se pudo cargar la textura de fondo de victoria!");
     }
 }
 
@@ -139,10 +156,23 @@ void CleanupGame() {
     UnloadTexture(currentThemeAssets.item);
     
     // Descargar otras texturas
-    UnloadTexture(playerTexture);
+    UnloadTexture(playerUp);
+    UnloadTexture(playerDown);
+    UnloadTexture(playerLeft);
+    UnloadTexture(playerRight);
 
     // Descargar textura de controles
     if (controlsTexture.id != 0) {
         UnloadTexture(controlsTexture);
+    }
+
+    // Descargar textura de fondo
+    if (menuBackgroundTexture.id != 0) {
+        UnloadTexture(menuBackgroundTexture);
+    }
+
+    // Descargar textura de fondo de victoria
+    if (victoryBgTexture.id != 0) {
+        UnloadTexture(victoryBgTexture);
     }
 }

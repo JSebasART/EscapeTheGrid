@@ -3,6 +3,7 @@
 #include "maze.hpp"
 #include "pathfinding.hpp"
 #include <string>
+#include <cmath>
 
 int mazeOffsetX = 0;
 int mazeOffsetY = 0;
@@ -78,13 +79,6 @@ void UpdateGameScreen() {
             if (energy > 100.0f) energy = 100.0f;
         }
     }
-
-    // Actualizar animación del jugador
-    animationTimer += GetFrameTime();
-    if (animationTimer >= FRAME_TIME) {
-        animationTimer = 0.0f;
-        playerFrame = (playerFrame + 1) % 2; // Alternar entre 2 frames
-    }
     
     // Verificar coleccionable
     if (moved && maze[player.row][player.col] == 'K') {
@@ -131,12 +125,9 @@ void UpdateGameScreen() {
     }
     
     // Botón resolver
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        Vector2 mousePos = GetMousePosition();
-        Rectangle solveButton = {SCREEN_WIDTH - 160, 10, 150, 40};
-        if (CheckCollisionPointRec(mousePos, solveButton)) {
-            solvePath = !solvePath;
-        }
+    if (IsKeyPressed(KEY_C)) {
+        selectedOption = 0;
+        solvePath = !solvePath;
     }
 }
 
@@ -192,14 +183,51 @@ void UpdateVictoryScreen() {
 
 // Implementación de funciones de dibujo
 void DrawMenu() {
-    DrawText("LA CASA DE LOS TRUCOS", SCREEN_WIDTH / 2 - MeasureText("LA CASA DE LOS TRUCOS", 50) / 2, 150, 50, DARKGRAY);
-
+    // Dibujar fondo de menú
+    if (menuBackgroundTexture.id != 0) {
+        // Calcular para cubrir toda la pantalla manteniendo relación de aspecto
+        float scaleX = (float)SCREEN_WIDTH / menuBackgroundTexture.width;
+        float scaleY = (float)SCREEN_HEIGHT / menuBackgroundTexture.height;
+        float scale = fmaxf(scaleX, scaleY); // Tomar la escala más grande
+        
+        // Calcular posición para centrar
+        float scaledWidth = menuBackgroundTexture.width * scale;
+        float scaledHeight = menuBackgroundTexture.height * scale;
+        float offsetX = (SCREEN_WIDTH - scaledWidth) * 0.5f;
+        float offsetY = (SCREEN_HEIGHT - scaledHeight) * 0.5f;
+        
+        // Dibujar textura cubriendo toda la pantalla
+        DrawTextureEx(
+            menuBackgroundTexture,
+            Vector2{offsetX, offsetY},
+            0.0f,
+            scale,
+            WHITE
+        );
+    } else {
+        // Fallback: fondo de color sólido
+        ClearBackground(RAYWHITE);
+    }
+    
+    // Dibujar capa semi-transparente para mejorar legibilidad
+    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.3f));
+    
+    // Título con sombra para mejor contraste
+    const char* title = "LA CASA DE LOS TRUCOS";
+    int titleWidth = MeasureText(title, 50);
+    
+    // Sombra
+    DrawText(title, SCREEN_WIDTH/2 - titleWidth/2 + 3, 153, 50, BLACK);
+    // Texto principal
+    DrawText(title, SCREEN_WIDTH/2 - titleWidth/2, 150, 50, RAYWHITE); // Dorado
+    
+    // Botones
     DrawRectangle(SCREEN_WIDTH / 2 - 100, 300, 200, 60, selectedOption == 0 ? BUTTON_SELECTED : BUTTON_COLOR);
     DrawText("JUGAR", SCREEN_WIDTH / 2 - MeasureText("JUGAR", 30) / 2, 315, 30, selectedOption == 0 ? WHITE : DARKGRAY);
-
+    
     DrawRectangle(SCREEN_WIDTH / 2 - 100, 380, 200, 60, selectedOption == 1 ? BUTTON_SELECTED : BUTTON_COLOR);
     DrawText("CONTROLES", SCREEN_WIDTH / 2 - MeasureText("CONTROLES", 30) / 2, 395, 30, selectedOption == 1 ? WHITE : DARKGRAY);
-
+    
     DrawRectangle(SCREEN_WIDTH / 2 - 100, 460, 200, 60, selectedOption == 2 ? BUTTON_SELECTED : BUTTON_COLOR);
     DrawText("SALIR", SCREEN_WIDTH / 2 - MeasureText("SALIR", 30) / 2, 475, 30, selectedOption == 2 ? WHITE : DARKGRAY);
 }
@@ -215,16 +243,26 @@ void DrawGameScreen() {
     DrawText(("TURNOS: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
     
     // Botón resolver
-    DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, solvePath ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("RESOLVER", SCREEN_WIDTH - 155, 20, 20, DARKGRAY);
+    const char* resolveText = "RESOLVER";
+    int textWidth = MeasureText(resolveText, 20);  // Calcula el ancho del texto
     
-    // Coleccionables - ahora con textura
+    DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, solvePath ? BUTTON_SELECTED : BUTTON_COLOR);
+    DrawText(
+        resolveText, 
+        (SCREEN_WIDTH - 160) + (150 - textWidth) / 2,  
+        20,                                            
+        20, 
+        RAYWHITE
+    );
+    
+    // Coleccionables
     Rectangle itemUIRect = {
         static_cast<float>(SCREEN_WIDTH / 2 - 15),
         15.0f,
         30.0f,
         30.0f
     };
+
     DrawTexturePro(
         currentThemeAssets.item,
         (Rectangle){0, 0, (float)currentThemeAssets.item.width, (float)currentThemeAssets.item.height},
@@ -233,7 +271,8 @@ void DrawGameScreen() {
         0.0f,
         WHITE
     );
-    DrawText(TextFormat("X%d", itemsCollected), SCREEN_WIDTH / 2 + 20, 20, 20, DARKGRAY);
+
+    DrawText(TextFormat("x%d", itemsCollected), SCREEN_WIDTH / 2 + 20, 20, 20, DARKGRAY);
 
     // Calcular offsets si no se han calculado
     if (mazeOffsetX == 0 && mazeOffsetY == 0) {
@@ -333,16 +372,21 @@ void DrawGameScreen() {
         }
     }
 
-    // Dibujar jugador con sprite sheet
-    if (playerTexture.id > 0) {
-        int frameWidth = playerTexture.width / 2;
-        int frameHeight = playerTexture.height;
-        
+    Texture2D currentPlayerTexture = playerDown;
+
+    switch (lastDirection) {
+    case KEY_UP: currentPlayerTexture = playerUp; break;
+    case KEY_DOWN: currentPlayerTexture = playerDown; break;
+    case KEY_LEFT: currentPlayerTexture = playerLeft; break;
+    case KEY_RIGHT: currentPlayerTexture = playerRight; break;
+}
+
+if (currentPlayerTexture.id > 0) {
         Rectangle sourceRec = {
-            static_cast<float>(playerFrame * frameWidth),
             0.0f,
-            static_cast<float>(frameWidth),
-            static_cast<float>(frameHeight)
+            0.0f,
+            (float)currentPlayerTexture.width,
+            (float)currentPlayerTexture.height
         };
         
         Rectangle destRec = {
@@ -352,10 +396,10 @@ void DrawGameScreen() {
             static_cast<float>(CELL_SIZE)
         };
         
-        DrawTexturePro(playerTexture, sourceRec, destRec, Vector2{0,0}, 0.0f, WHITE);
+        DrawTexturePro(currentPlayerTexture, sourceRec, destRec, Vector2{0,0}, 0.0f, WHITE);
     }
     else {
-        // Fallback: dibujar cuadrado si no hay textura
+        // Fallback: dibujar cuadrado
         DrawRectangle(
             mazeOffsetX + player.col * CELL_SIZE,
             mazeOffsetY + player.row * CELL_SIZE,
@@ -366,6 +410,7 @@ void DrawGameScreen() {
 void DrawPauseScreen() {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.5f));
     DrawRectangle(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 150, 300, 300, LIGHTGRAY);
+
     DrawText("PAUSA", SCREEN_WIDTH / 2 - MeasureText("PAUSA", 40) / 2, SCREEN_HEIGHT / 2 - 130, 40, DARKGRAY);
 
     DrawRectangle(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 60, 200, 50, selectedOption == 0 ? BUTTON_SELECTED : BUTTON_COLOR);
@@ -409,19 +454,57 @@ void DrawControlsScreen() {
 }
 
 void DrawVictoryScreen() {
-    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(VICTORY_COLOR, 0.9f));
-    DrawText("¡LO LOGRASTE!", SCREEN_WIDTH / 2 - MeasureText("¡LO LOGRASTE!", 70) / 2, SCREEN_HEIGHT / 2 - 150, 70, WHITE);
+    // Dibujar imagen de fondo (si está cargada)
+    if (victoryBgTexture.id != 0) {
+        // Calcular escala para cubrir toda la pantalla manteniendo relación de aspecto
+        float scaleX = (float)SCREEN_WIDTH / victoryBgTexture.width;
+        float scaleY = (float)SCREEN_HEIGHT / victoryBgTexture.height;
+        float scale = (scaleX > scaleY) ? scaleX : scaleY;
+        
+        int scaledWidth = victoryBgTexture.width * scale;
+        int scaledHeight = victoryBgTexture.height * scale;
+        int offsetX = (SCREEN_WIDTH - scaledWidth) / 2;
+        int offsetY = (SCREEN_HEIGHT - scaledHeight) / 2;
+        
+        DrawTextureEx(
+            victoryBgTexture,
+            Vector2{(float)offsetX, (float)offsetY},
+            0.0f,
+            scale,
+            WHITE
+        );
+    } else {
+        // Fallback: fondo de color sólido
+        DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, VICTORY_COLOR);
+    }
     
+    // Panel semitransparente para mejorar legibilidad del texto
+    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.3f));
+    
+    // Mensaje de victoria
+    DrawText("¡LO LOGRASTE!", SCREEN_WIDTH / 2 - MeasureText("¡LO LOGRASTE!", 70) / 2, 
+             SCREEN_HEIGHT / 2 - 150, 70, WHITE);
+    
+    // Mensaje adicional si se recolectó el coleccionable
     if (itemsCollected > 0) {
         DrawText(TextFormat("¡Recolectaste %d item!", itemsCollected),
                  SCREEN_WIDTH / 2 - MeasureText(TextFormat("¡Recolectaste %d item!", itemsCollected), 30) / 2,
                  SCREEN_HEIGHT / 2 - 80, 30, WHITE);
     }
     
-    // Cambiar texto a "JUGAR DE NUEVO"
-    DrawRectangle(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2, 400, 60, selectedWinOption == 0 ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("JUGAR DE NUEVO", SCREEN_WIDTH / 2 - MeasureText("JUGAR DE NUEVO", 30) / 2, SCREEN_HEIGHT / 2 + 15, 30, selectedWinOption == 0 ? WHITE : DARKGRAY);
+    // Botones con fondo semitransparente para mejor contraste
+    DrawRectangle(SCREEN_WIDTH / 2 - 210, SCREEN_HEIGHT / 2 - 10, 420, 70, Fade(BLACK, 0.5f));
+    DrawRectangle(SCREEN_WIDTH / 2 - 210, SCREEN_HEIGHT / 2 + 90, 420, 70, Fade(BLACK, 0.5f));
     
-    DrawRectangle(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2 + 100, 400, 60, selectedWinOption == 1 ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("MENU PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENU PRINCIPAL", 30) / 2, SCREEN_HEIGHT / 2 + 115, 30, selectedWinOption == 1 ? WHITE : DARKGRAY);
+    // Botón SIGUIENTE NIVEL
+    DrawRectangle(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2, 400, 60,
+                  selectedWinOption == 0 ? BUTTON_SELECTED : BUTTON_COLOR);
+    DrawText("JUGAR DE NUEVO", SCREEN_WIDTH / 2 - MeasureText("JUGAR DE NUEVO", 30) / 2, 
+             SCREEN_HEIGHT / 2 + 15, 30, selectedWinOption == 0 ? WHITE : DARKGRAY);
+    
+    // Botón MENÚ PRINCIPAL
+    DrawRectangle(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2 + 100, 400, 60,
+                  selectedWinOption == 1 ? BUTTON_SELECTED : BUTTON_COLOR);
+    DrawText("MENÚ PRINCIPAL", SCREEN_WIDTH / 2 - MeasureText("MENÚ PRINCIPAL", 30) / 2, 
+             SCREEN_HEIGHT / 2 + 115, 30, selectedWinOption == 1 ? WHITE : DARKGRAY);
 }
