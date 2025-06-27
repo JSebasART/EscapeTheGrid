@@ -89,9 +89,10 @@ void UpdateGameScreen() {
             case KEY_RIGHT: tc++; break;
         }
         if (maze[tr][tc]=='#') BreakWallAt(tr,tc);
+        canBreakWall = false;
     }
     // Toggle autoplay
-    if (IsKeyPressed(KEY_R)) {
+    if (IsKeyPressed(KEY_C)) {
         if (!isAutoSolving) {
             solvePath=true; isAutoSolving=true; autoStepIndex=0; autoMoveTimer=0.0f;
             int units = std::min(MAX_ENERGY_STEPS, (int)(energy*MAX_ENERGY_STEPS/100.0f));
@@ -103,7 +104,7 @@ void UpdateGameScreen() {
     // Autoplay 1 paso/s
     if (isAutoSolving && autoStepIndex < (int)solutionPath.size()) {
         autoMoveTimer += GetFrameTime();
-        if (autoMoveTimer >= 1.0f) {
+        if (autoMoveTimer >= 0.5f) {
             autoMoveTimer=0.0f;
             int tr=solutionPath[autoStepIndex].first;
             int tc=solutionPath[autoStepIndex].second;
@@ -227,7 +228,7 @@ void DrawGameScreen() {
     }
 
     // Contador de pasos
-    DrawText(("TURNOS: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
+    DrawText(("PASOS: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
     
     // Botón resolver
     DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, solvePath ? BUTTON_SELECTED : BUTTON_COLOR);

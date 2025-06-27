@@ -5,6 +5,7 @@
 #include "ui.hpp"
 #include <algorithm>
 #include <ctime>
+#include <cstdlib>
 
 // Variables globales
 GameScreen currentScreen = MENU;
@@ -97,14 +98,23 @@ void InitializeGame() {
     stepCount = 0;
     itemsCollected = 0;
     energy = 0.0f;
-    canBreakWall = false;
+    canBreakWall = true;
     solvePath = false;
     isAutoSolving = false;
     autoStepIndex = 0;
     autoMoveTimer = 0.0f;
 
-    // Cargar tema inicial
-    LoadTheme(THEME_ICE);
+    srand(static_cast<unsigned int>(time(nullptr)));  // Inicializar semilla aleatoria
+
+    // Luego donde quieras cargar un tema aleatorio:
+    int randomTheme = rand() % 4 + 1;  // Genera número entre 1 y 4
+
+    switch(randomTheme) {
+        case 1: LoadTheme(THEME_ICE); break;
+        case 2: LoadTheme(THEME_CASTLE); break;
+        case 3: LoadTheme(THEME_FOREST); break;
+        case 4: LoadTheme(THEME_DUNGEON); break;
+    }
 
     playerUp = LoadTexture("resources/player-up.png");
     playerDown = LoadTexture("resources/player-down.png");
@@ -140,6 +150,18 @@ void ResetGame() {
     player.row = start.first;
     player.col = start.second;
     
+    srand(static_cast<unsigned int>(time(nullptr)));  // Inicializar semilla aleatoria
+
+    // Luego donde quieras cargar un tema aleatorio:
+    int randomTheme = rand() % 4 + 1;  // Genera número entre 1 y 4
+
+    switch(randomTheme) {
+        case 1: LoadTheme(THEME_ICE); break;
+        case 2: LoadTheme(THEME_CASTLE); break;
+        case 3: LoadTheme(THEME_FOREST); break;
+        case 4: LoadTheme(THEME_DUNGEON); break;
+    }
+    
     // Resetear solo estado del jugador, no del laberinto
     stepCount = 0;
     itemsCollected = 0;
@@ -147,7 +169,7 @@ void ResetGame() {
     wallsRemoved          = false;  // permite volver a quitar paredes aleatorias
     stepsSinceLastChange  = 0;  
     hasBrokenWall = false;
-    canBreakWall = false;
+    canBreakWall = true;
     int energyUnits = std::min(
         MAX_ENERGY_STEPS,
         static_cast<int>(energy * MAX_ENERGY_STEPS / 100.0f)
