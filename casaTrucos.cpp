@@ -10,14 +10,14 @@ using namespace std;
 #define pii pair<int,int>
 
 const int INF = 1e9;
-const int energiaMax = 5;
+const int maxEnergy = 5;
 
 struct State {
     int x, y;           // Coordenadas del jugador en el laberinto
     int cost;           // Costo acumulado (cantidad de pasos hasta hasta el momento)
     int energy;         // Energía acumulada (incrementa con cada paso)
     bool brokenWall;    // ¿la pared ha sido rota? true o false
-    vector<pii> path;
+    vector<pii> path;   // lista ordenada de celdas por las que pasó el algoritmo.
 
     bool operator>(const State& other) const {
         return cost > other.cost;
@@ -45,7 +45,7 @@ vector<pii> dijkstraAlgorithm(const vector<string>& map, pii start, pii finish) 
     // 4D para evitar repetir States (x, y, energía, brokenWall)
     vector<vector<vector<vector<bool>>>> visited(n,
         vector<vector<vector<bool>>>(m,
-        vector<vector<bool>>(energiaMax + 1,
+        vector<vector<bool>>(maxEnergy + 1,
         vector<bool>(2, false))));
 
     priority_queue<State, vector<State>, greater<State>> pq;
@@ -57,7 +57,9 @@ vector<pii> dijkstraAlgorithm(const vector<string>& map, pii start, pii finish) 
     while (!pq.empty()) {
         State u = pq.top(); pq.pop();
 
+        // devuelve las celdas transitadas por el algoritmo (es decir, el camino desde 'S' hasta 'G')
         if (u.x == finish.first && u.y == finish.second)
+        // LLegando a la meta (G), que está en las coordenadas finish.first, finish.second, retorna:
             return u.path;
 
         if (visited[u.x][u.y][u.energy][u.brokenWall]) continue;
@@ -76,12 +78,24 @@ vector<pii> dijkstraAlgorithm(const vector<string>& map, pii start, pii finish) 
             nextCell.path.push_back({nx, ny});
             nextCell.cost++;
 
+            // Si la celda es transitable
             if (cell == '.' || cell == 'G') {
-                nextCell.energy = min(u.energy + 1, energiaMax);
+                nextCell.energy = min(u.energy + 1, maxEnergy);
+
+                // Imprimir pasos que faltan para romper pared
+                if (!u.brokenWall && nextCell.energy < maxEnergy) {
+                    int restantes = maxEnergy - nextCell.energy;
+                    cout << "En (" << nx << ", " << ny << "): faltan " 
+                         << restantes << " paso(s) para poder romper una pared.\n";
+                }
+
                 pq.push(nextCell);
-            } else if (cell == '#' && u.energy >= energiaMax && !u.brokenWall) {
+            }
+            // Si es pared y puedes romperla
+            else if (cell == '#' && u.energy >= maxEnergy && !u.brokenWall) {
                 nextCell.energy = 0;
                 nextCell.brokenWall = true;
+                cout << "Pared rota en (" << nx << ", " << ny << ") usando energía máxima.\n";
                 pq.push(nextCell);
             }
         }
@@ -113,7 +127,7 @@ int main() {
     if (way.empty()) {
         cout << "No se encontró un camino desde S hasta G.\n";
     } else {
-        cout << "camino encontrado:\n";
+        cout << "Camino encontrado:\n";
         for (auto [x, y] : way)
             cout << "(" << x << ", " << y << ") ";
         cout << "\nTotal de pasos: " << way.size() - 1 << endl;
