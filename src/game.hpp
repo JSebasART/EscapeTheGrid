@@ -73,6 +73,16 @@ extern std::vector<std::pair<int, int>> solutionPath;
 extern Theme currentTheme;
 extern ThemeAssets currentThemeAssets;
 extern Texture2D controlsTexture;
+extern bool isAutoSolving;
+extern int autoStepIndex;
+extern float autoMoveTimer;
+extern int stepsSinceLastChange;
+extern const int DISAPPEAR_INTERVAL;
+extern const int WALLS_TO_REMOVE;
+extern bool wallsRemoved;
+extern bool hasBrokenWall;
+extern const int MAX_ENERGY_STEPS; 
+
 
 // Variables para animación
 extern Texture2D playerTexture;
@@ -85,3 +95,5 @@ void InitializeGame();
 void UpdateGame();
 void DrawGame();
 void ResetGame();
+void RemoveRandomWalls(int count);
+void BreakWallAt(int row, int col);

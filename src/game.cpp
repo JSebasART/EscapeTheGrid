@@ -1,7 +1,10 @@
 #include "game.hpp"
 #include "maze.hpp"
 #include "pathFinding.hpp"
+#include <random>
 #include "ui.hpp"
+#include <algorithm>
+#include <ctime>
 
 // Variables globales
 GameScreen currentScreen = MENU;
@@ -13,8 +16,19 @@ int stepCount = 0;
 int itemsCollected = 0;
 float energy = 0.0f;
 bool canBreakWall = false;
+float autoMoveTimer = 0.0f;
 int lastDirection = 0;
 bool solvePath = false;
+bool isAutoSolving = false;
+int autoStepIndex = 0;
+const int DISAPPEAR_INTERVAL = 5; 
+const int WALLS_TO_REMOVE = 5;     
+int stepsSinceLastChange = 0;
+bool wallsRemoved = false;
+bool hasBrokenWall = false;
+const int MAX_ENERGY_STEPS = 5; 
+
+
 std::vector<std::pair<int, int>> solutionPath;
 Texture2D controlsTexture;
 
@@ -66,7 +80,17 @@ void InitializeGame() {
     auto start = FindStartPosition();
     player.row = start.first;
     player.col = start.second;
-    solutionPath = FindPath(FindEndPosition());
+    hasBrokenWall = false;
+    int energyUnits = std::min(
+        MAX_ENERGY_STEPS,
+        static_cast<int>(energy * MAX_ENERGY_STEPS / 100.0f)
+    );
+    solutionPath = FindPath(
+        std::make_pair(player.row, player.col),
+        FindEndPosition(),
+        energyUnits,
+        hasBrokenWall
+    );
     
     // Inicializar energía y coleccionables
     stepCount = 0;
@@ -74,6 +98,9 @@ void InitializeGame() {
     energy = 0.0f;
     canBreakWall = false;
     solvePath = false;
+    isAutoSolving = false;
+    autoStepIndex = 0;
+    autoMoveTimer = 0.0f;
 
     // Cargar tema inicial
     LoadTheme(THEME_CASTLE);
@@ -100,8 +127,22 @@ void ResetGame() {
     stepCount = 0;
     itemsCollected = 0;
     energy = 0.0f;
+    wallsRemoved          = false;  // permite volver a quitar paredes aleatorias
+    stepsSinceLastChange  = 0;  
+    hasBrokenWall = false;
     canBreakWall = false;
-    solutionPath = FindPath(FindEndPosition());
+    int energyUnits = std::min(
+        MAX_ENERGY_STEPS,
+        static_cast<int>(energy * MAX_ENERGY_STEPS / 100.0f)
+    );
+    solutionPath = FindPath(
+        std::make_pair(player.row, player.col),
+        FindEndPosition(),
+        energyUnits,
+        hasBrokenWall
+    );
+
+
     solvePath = false;
 }
 
@@ -128,6 +169,36 @@ void DrawGame() {
     }
     
     EndDrawing();
+}
+
+void BreakWallAt(int row, int col) {
+    if (!hasBrokenWall) {
+        maze[row][col] = '.';
+        hasBrokenWall = true;
+        energy = 0.0f;
+    }
+}
+
+void RemoveRandomWalls(int count) {
+    std::vector<pii> wallPositions;
+
+    for (int i = 0; i < (int)maze.size(); ++i) {
+        for (int j = 0; j < (int)maze[i].size(); ++j) {
+            if (maze[i][j] == '#') {
+                wallPositions.push_back({i, j});
+            }
+        }
+    }
+
+        std::srand((unsigned)std::time(nullptr));
+        std::shuffle(wallPositions.begin(), wallPositions.end(), std::default_random_engine(std::time(nullptr)));
+
+
+    for (int i = 0; i < std::min(count, (int)wallPositions.size()); ++i) {
+        int row = wallPositions[i].first;
+        int col = wallPositions[i].second;
+        maze[row][col] = '.';
+    }
 }
 
 void CleanupGame() {

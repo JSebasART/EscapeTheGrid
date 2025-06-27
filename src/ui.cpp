@@ -34,7 +34,7 @@ void UpdateMenu() {
 }
 
 void UpdateGameScreen() {
-    // Movimiento del jugador
+    // Movimiento del jugador manual
     bool moved = false;
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
         lastDirection = KEY_UP;
@@ -42,19 +42,18 @@ void UpdateGameScreen() {
             player.row--;
             stepCount++;
             moved = true;
-            energy += 10.0f;
-            if (energy > 100.0f) energy = 100.0f;
+            energy = std::min(energy + 10.0f, 100.0f);
+            stepsSinceLastChange++;
         }
     }
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         lastDirection = KEY_DOWN;
-        if (player.row < static_cast<int>(maze.size()) - 1 &&
-            maze[player.row + 1][player.col] != '#') {
+        if (player.row < static_cast<int>(maze.size()) - 1 && maze[player.row + 1][player.col] != '#') {
             player.row++;
             stepCount++;
             moved = true;
-            energy += 10.0f;
-            if (energy > 100.0f) energy = 100.0f;
+            energy = std::min(energy + 10.0f, 100.0f);
+            stepsSinceLastChange++;
         }
     }
     if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
@@ -63,19 +62,30 @@ void UpdateGameScreen() {
             player.col--;
             stepCount++;
             moved = true;
-            energy += 10.0f;
-            if (energy > 100.0f) energy = 100.0f;
+            energy = std::min(energy + 10.0f, 100.0f);
+            stepsSinceLastChange++;
         }
     }
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
         lastDirection = KEY_RIGHT;
-        if (player.col < static_cast<int>(maze[0].size()) - 1 &&
-            maze[player.row][player.col + 1] != '#') {
+        if (player.col < static_cast<int>(maze[0].size()) - 1 && maze[player.row][player.col + 1] != '#') {
             player.col++;
             stepCount++;
             moved = true;
-            energy += 10.0f;
-            if (energy > 100.0f) energy = 100.0f;
+            energy = std::min(energy + 10.0f, 100.0f);
+            stepsSinceLastChange++;
+        }
+    }
+
+    // Desaparición única de paredes
+    if (!wallsRemoved && stepsSinceLastChange >= DISAPPEAR_INTERVAL) {
+        RemoveRandomWalls(WALLS_TO_REMOVE);
+        wallsRemoved = true;
+        stepsSinceLastChange = 0;
+        if (isAutoSolving) {
+            int units = std::min(MAX_ENERGY_STEPS, int(energy * MAX_ENERGY_STEPS / 100.0f));
+            solutionPath = FindPath({player.row, player.col}, FindEndPosition(), units, hasBrokenWall);
+            autoStepIndex = 0;
         }
     }
 
@@ -83,40 +93,94 @@ void UpdateGameScreen() {
     animationTimer += GetFrameTime();
     if (animationTimer >= FRAME_TIME) {
         animationTimer = 0.0f;
-        playerFrame = (playerFrame + 1) % 2; // Alternar entre 2 frames
+        playerFrame = (playerFrame + 1) % 2;
     }
-    
-    // Verificar coleccionable
+
+    // Recolectar ítem
     if (moved && maze[player.row][player.col] == 'K') {
         maze[player.row][player.col] = '.';
         itemsCollected++;
-        solutionPath = FindPath(FindEndPosition());
+        int units = std::min(MAX_ENERGY_STEPS, int(energy * MAX_ENERGY_STEPS / 100.0f));
+        solutionPath = FindPath({player.row, player.col}, FindEndPosition(), units, hasBrokenWall);
     }
 
-    // Romper pared
-    if (energy >= 100.0f && IsKeyPressed(KEY_SPACE)) {
+    // Romper pared manual (solo una vez)
+    if (energy >= 100.0f && !hasBrokenWall && IsKeyPressed(KEY_SPACE)) {
         int targetRow = player.row;
         int targetCol = player.col;
-        
         switch (lastDirection) {
-            case KEY_UP: targetRow--; break;
-            case KEY_DOWN: targetRow++; break;
-            case KEY_LEFT: targetCol--; break;
+            case KEY_UP:    targetRow--; break;
+            case KEY_DOWN:  targetRow++; break;
+            case KEY_LEFT:  targetCol--; break;
             case KEY_RIGHT: targetCol++; break;
         }
-        
-        if (targetRow >= 0 && targetRow < static_cast<int>(maze.size()) &&
-            targetCol >= 0 && targetCol < static_cast<int>(maze[0].size()) &&
-            maze[targetRow][targetCol] == '#') {
-            
-            maze[targetRow][targetCol] = '.';
-            energy = 0.0f;
-            solutionPath = FindPath(FindEndPosition());
+        if (maze[targetRow][targetCol] == '#') {
+            BreakWallAt(targetRow, targetCol);
         }
     }
 
-    // Actualizar estado de energía
-    canBreakWall = (energy >= 100.0f);
+    // Activar/desactivar autoplay con recalculo inicial
+    if (IsKeyPressed(KEY_R)) {
+        if (!isAutoSolving) {
+            solvePath = true;
+            isAutoSolving = true;
+            autoStepIndex = 0;
+            autoMoveTimer = 0.0f;
+            int units = std::min(MAX_ENERGY_STEPS, int(energy * MAX_ENERGY_STEPS / 100.0f));
+            solutionPath = FindPath({player.row, player.col}, FindEndPosition(), units, hasBrokenWall);
+        } else {
+            isAutoSolving = false;
+        }
+    }
+
+    // Autoplay (1 paso/s)
+    if (isAutoSolving && autoStepIndex < static_cast<int>(solutionPath.size())) {
+        autoMoveTimer += GetFrameTime();
+        if (autoMoveTimer >= 1.0f) {
+            autoMoveTimer = 0.0f;
+            int targetRow = solutionPath[autoStepIndex].first;
+            int targetCol = solutionPath[autoStepIndex].second;
+
+            if (player.row != targetRow || player.col != targetCol) {
+                int dr = targetRow - player.row;
+                int dc = targetCol - player.col;
+                int nextRow = player.row + (dr > 0 ? 1 : (dr < 0 ? -1 : 0));
+                int nextCol = player.col + (dc > 0 ? 1 : (dc < 0 ? -1 : 0));
+
+                // Romper pared en autoplay (solo una vez)
+                if (maze[nextRow][nextCol] == '#' && energy >= 100.0f && !hasBrokenWall) {
+                    BreakWallAt(nextRow, nextCol);
+                    stepCount++;
+                }
+                // Movimiento normal
+                else if (maze[nextRow][nextCol] != '#') {
+                    player.row = nextRow;
+                    player.col = nextCol;
+                    stepCount++;
+                    energy = std::min(energy + 10.0f, 100.0f);
+                    autoStepIndex++;
+                    stepsSinceLastChange++;
+                }
+            } else {
+                autoStepIndex++;
+            }
+
+            // Detener autoplay si llegó a meta
+            if (maze[player.row][player.col] == 'G') {
+                isAutoSolving = false;
+            }
+
+            // Revisión de desaparición de paredes
+            if (!wallsRemoved && stepsSinceLastChange >= DISAPPEAR_INTERVAL) {
+                RemoveRandomWalls(WALLS_TO_REMOVE);
+                wallsRemoved = true;
+                stepsSinceLastChange = 0;
+            }
+        }
+    }
+
+    // Indicador de romper pared
+    canBreakWall = (energy >= 100.0f && !hasBrokenWall);
 
     // Pausa
     if (IsKeyPressed(KEY_ESCAPE)) {
@@ -129,17 +193,7 @@ void UpdateGameScreen() {
         selectedWinOption = 0;
         currentScreen = VICTORY;
     }
-    
-    // Botón resolver
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        Vector2 mousePos = GetMousePosition();
-        Rectangle solveButton = {SCREEN_WIDTH - 160, 10, 150, 40};
-        if (CheckCollisionPointRec(mousePos, solveButton)) {
-            solvePath = !solvePath;
-        }
-    }
 }
-
 void UpdatePauseScreen() {
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         selectedOption = (selectedOption + 1) % 3;
@@ -205,18 +259,23 @@ void DrawMenu() {
 }
 
 void DrawGameScreen() {
-    // Barra de energía
     DrawRectangle(10, 10, 50, 40, LIGHTGRAY);
-    DrawRectangle(10, 10, static_cast<int>(50 * (energy/100.0f)), 40, ENERGY_FILL_COLOR);
     DrawRectangleLines(10, 10, 50, 40, DARKGRAY);
-    if (canBreakWall) DrawRectangleLines(10, 10, 50, 40, ENERGY_READY_COLOR);
+    if (canBreakWall) {
+        DrawRectangle(10, 10,
+            static_cast<int>(50 * (energy/100.0f)),
+            40,
+            ENERGY_FILL_COLOR
+        );
+        DrawRectangleLines(10, 10, 50, 40, ENERGY_READY_COLOR);
+    }
 
     // Contador de pasos
     DrawText(("TURNOS: " + std::to_string(stepCount)).c_str(), 70, 20, 20, DARKGRAY);
     
     // Botón resolver
     DrawRectangle(SCREEN_WIDTH - 160, 10, 150, 40, solvePath ? BUTTON_SELECTED : BUTTON_COLOR);
-    DrawText("RESOLVER", SCREEN_WIDTH - 155, 20, 20, DARKGRAY);
+    DrawText("Solucionar ¨R¨", SCREEN_WIDTH - 155, 20, 20, DARKGRAY);
     
     // Coleccionables - ahora con textura
     Rectangle itemUIRect = {
@@ -415,7 +474,7 @@ void DrawVictoryScreen() {
     if (itemsCollected > 0) {
         DrawText(TextFormat("¡Recolectaste %d item!", itemsCollected),
                  SCREEN_WIDTH / 2 - MeasureText(TextFormat("¡Recolectaste %d item!", itemsCollected), 30) / 2,
-                 SCREEN_HEIGHT / 2 - 80, 30, WHITE);
+                 SCREEN_HEIGHT / 2 - 80, 30, WHITE);    
     }
     
     // Cambiar texto a "JUGAR DE NUEVO"
