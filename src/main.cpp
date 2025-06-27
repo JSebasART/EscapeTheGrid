@@ -21,6 +21,5 @@ int main() {
     }
 
     CloseWindow();
-    UnloadTexture(playerTexture);
     return 0;
 }

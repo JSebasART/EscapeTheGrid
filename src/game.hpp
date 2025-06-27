@@ -83,12 +83,13 @@ extern bool wallsRemoved;
 extern bool hasBrokenWall;
 extern const int MAX_ENERGY_STEPS; 
 
+extern Texture2D menuBackgroundTexture;
+extern Texture2D victoryBgTexture;
 
-// Variables para animación
-extern Texture2D playerTexture;
-extern int playerFrame;
-extern float animationTimer;
-extern const float FRAME_TIME;
+extern Texture2D playerUp;
+extern Texture2D playerDown;
+extern Texture2D playerLeft;
+extern Texture2D playerRight;
 
 // Funciones principales
 void InitializeGame();
