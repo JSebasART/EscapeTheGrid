@@ -7,7 +7,7 @@
 
 int mazeOffsetX = 0;
 int mazeOffsetY = 0;
-
+static const float AUTO_MOVE_INTERVAL = 0.5f;
 // Implementación de funciones de actualización
 void UpdateMenu() {
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
@@ -36,6 +36,8 @@ void UpdateMenu() {
 
 void UpdateGameScreen() {
     bool moved = false;
+     float dt = GetFrameTime();
+    autoMoveTimer += dt;
     // Movimiento manual
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
         lastDirection = KEY_UP;
@@ -61,16 +63,51 @@ void UpdateGameScreen() {
             player.col++; moved = true; stepCount++; energy = std::min(energy+10.0f,100.0f); stepsSinceLastChange++;
         }
     }
+     if (moved) {
+        MoveDynamicWalls(2, player.row, player.col);
+    }
+    
+     if (isAutoSolving && autoMoveTimer >= AUTO_MOVE_INTERVAL) {
+        autoMoveTimer = 0.0f;  // reseteamos el contador
+
+        // 1) Celda destino
+        auto [tr, tc] = solutionPath[autoStepIndex];
+
+        // 2) Si un muro bloquea, recalculamos o abortamos
+        if (maze[tr][tc] == '#') {
+            auto newPath = FindPath(
+                {player.row, player.col},
+                FindEndPosition(),
+                std::min(MAX_ENERGY_STEPS, int(energy * MAX_ENERGY_STEPS/100.0f)),
+                hasBrokenWall
+            );
+            if (newPath.empty()) {
+                isAutoSolving = false;
+                noSolution    = true;
+            } else {
+                solutionPath  = newPath;
+                autoStepIndex = 0;
+            }
+        }
+        // 3) Si está libre, avanzamos y movemos muros
+        else if (autoStepIndex < (int)solutionPath.size()) {
+            // a) mover al jugador
+            player.row = tr;
+            player.col = tc;
+            stepCount++;
+            energy = std::min(energy + 10.0f, 100.0f);
+            autoStepIndex++;
+            stepsSinceLastChange++;
+
+            // b) desplazar 2 muros dinámicos
+            MoveDynamicWalls(2, player.row, player.col);
+        }
+    }
     // Desaparición única de paredes
     if (!wallsRemoved && stepsSinceLastChange >= DISAPPEAR_INTERVAL) {
         RemoveRandomWalls(WALLS_TO_REMOVE);
         wallsRemoved = true;
         stepsSinceLastChange = 0;
-        if (isAutoSolving) {
-            int units = std::min(MAX_ENERGY_STEPS, (int)(energy*MAX_ENERGY_STEPS/100.0f));
-            solutionPath = FindPath({player.row,player.col}, FindEndPosition(), units, hasBrokenWall);
-            autoStepIndex = 0;
-        }
     }
     // Interacción con ítem
     if (moved && maze[player.row][player.col] == 'K') {
@@ -132,6 +169,7 @@ void UpdateGameScreen() {
     if (IsKeyPressed(KEY_ESCAPE)) {
         selectedOption=0; currentScreen=PAUSE;
     }
+
     // Victoria
     if (maze[player.row][player.col]=='G') {
         selectedWinOption=0; currentScreen=VICTORY;
@@ -386,6 +424,16 @@ if (currentPlayerTexture.id > 0) {
             static_cast<float>(CELL_SIZE)
         };
         
+        if (noSolution) {
+            const char* msg = "¡No hay solución disponible!";
+            int w = MeasureText(msg, 20);
+            DrawText(msg,
+                    (SCREEN_WIDTH - w)/2,
+                    SCREEN_HEIGHT - 40,
+                    20,
+                    RED);
+        }
+
         DrawTexturePro(currentPlayerTexture, sourceRec, destRec, Vector2{0,0}, 0.0f, WHITE);
     }
     else {

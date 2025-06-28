@@ -82,6 +82,7 @@ extern const int WALLS_TO_REMOVE;
 extern bool wallsRemoved;
 extern bool hasBrokenWall;
 extern const int MAX_ENERGY_STEPS; 
+extern bool noSolution;
 
 extern Texture2D menuBackgroundTexture;
 extern Texture2D victoryBgTexture;
@@ -98,3 +99,4 @@ void DrawGame();
 void ResetGame();
 void RemoveRandomWalls(int count);
 void BreakWallAt(int row, int col);
+void MoveDynamicWalls(int count, int playerRow, int playerCol);

@@ -27,8 +27,8 @@ const int WALLS_TO_REMOVE = 5;
 int stepsSinceLastChange = 0;
 bool wallsRemoved = false;
 bool hasBrokenWall = false;
+bool noSolution = false;
 const int MAX_ENERGY_STEPS = 5; 
-
 
 std::vector<std::pair<int, int>> solutionPath;
 Texture2D controlsTexture;
@@ -150,6 +150,7 @@ void ResetGame() {
     player.row = start.first;
     player.col = start.second;
     
+    noSolution = false;
     srand(static_cast<unsigned int>(time(nullptr)));  // Inicializar semilla aleatoria
 
     // Luego donde quieras cargar un tema aleatorio:
@@ -239,6 +240,46 @@ void RemoveRandomWalls(int count) {
         maze[row][col] = '.';
     }
 }
+
+void MoveDynamicWalls(int count, int playerRow, int playerCol) {
+    std::vector<std::pair<int,int>> wallPositions;
+    for (int i = 0; i < (int)maze.size(); ++i)
+        for (int j = 0; j < (int)maze[i].size(); ++j)
+            if (maze[i][j] == '#')
+                wallPositions.emplace_back(i, j);
+
+    // barajar muros
+    std::shuffle(wallPositions.begin(), wallPositions.end(),
+                 std::default_random_engine(std::time(nullptr)));
+
+    int moved = 0;
+    int dirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+    for (auto &p : wallPositions) {
+        if (moved >= count) break;
+        int r = p.first, c = p.second;
+        int currDist = abs(r - playerRow) + abs(c - playerCol);
+
+        // barajar direcciones
+        std::shuffle(std::begin(dirs), std::end(dirs),
+                     std::default_random_engine(std::time(nullptr)));
+        for (auto& d : dirs) {
+            int nr = r + d[0], nc = c + d[1];
+            if (!IsValidPosition(nr,nc) || maze[nr][nc] != '.') continue;
+            // no mover al bloque del jugador
+            if (nr == playerRow && nc == playerCol) continue;
+            // no permitir movimiento que reduzca la distancia
+            int newDist = abs(nr - playerRow) + abs(nc - playerCol);
+            if (newDist < currDist) continue;
+
+            // aplicar movimiento
+            maze[nr][nc] = '#';
+            maze[r][c]   = '.';
+            moved++;
+            break;
+        }
+    }
+}
+
 
 void CleanupGame() {
     // Descargar texturas de tema
