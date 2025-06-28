@@ -26,9 +26,11 @@
 ### Windows
 
 1. Descargar el instalador de raylib desde su [sitio oficial](https://www.raylib.com/).
+
 ![Instalador de raylib](resources/screenshots/installer.PNG)
 
 2. Clonar este repositorio en la rama principal (main), ya sea con HTTPS o SSH. NOTA: Debe realizarse en el Escritorio o Desktop.
+
 ![Clonar repositorio](resources/screenshots/clone.PNG)
 
 3. Dirigirse a la carpeta [src](src/) y buscar el archivo [main.cpp](src/main.cpp).
@@ -39,6 +41,7 @@
 
 1. Instalar raylib en la carpeta Home del usuario (por ejemplo, /home/mj/).
 1. En la terminal, ejecutar:
+
 ````
 sudo apt install libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
 git clone --depth 1 https://github.com/raysan5/raylib.git raylib
@@ -47,6 +50,7 @@ make PLATFORM=PLATFORM_DESKTOP
 make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED
 sudo make install RAYLIB_LIBTYPE=SHARED
 ````
+
 NOTA: Asegurar que raylib se haya instalado en la carpeta Home del usuario (por ejemplo, /home/mj/).
 
 2. Clonar este repositorio en la rama principal (main). NOTA: Debe realizarse en el Escritorio o Desktop.
@@ -87,6 +91,7 @@ NOTA: Asegurar que raylib se haya instalado en la carpeta Home del usuario (por 
 ## Capturas de Pantalla
 
 ### Gameplay
+
 ![Castillo](resources/screenshots/gameplay.gif)
 
 ### Temáticas del juego
@@ -102,6 +107,7 @@ NOTA: Asegurar que raylib se haya instalado en la carpeta Home del usuario (por 
 ## Reporte
 
 El [reporte](docs/REPORTE.md) incluye:
+
 - Algoritmos utilizados y cómo fueron implementados.
 - Investigación sobre la biblioteca gráfica seleccionada y un pequeño manual sobre su uso.
 - Cómo se manejó la visualización del camino más óptimo.
@@ -114,9 +120,13 @@ Este proyecto está bajo la licencia [MIT](LICENSE).
 ## Créditos
 
 - **Desarrollado por:** 
+
     - Erika Sofía Hernández Cortéz 00161220
     - Diego Sebastián Jiménez Artiga 00074720
     - María José Morales Ávalos 00155020
+
 - **Asignatura:** Técnicas de Simulación en Computadoras
+
 - **Universidad:** Universidad Centroamericana José Simeón Cañas
+
 - **Bibliotecas:** [Raylib](https://www.raylib.com/) - Copyright (c) 2013-2025 Ramon Santamaria (@raysan5)
