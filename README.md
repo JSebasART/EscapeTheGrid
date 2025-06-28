@@ -39,7 +39,6 @@
 
 ### Linux (Ubuntu)
 
-1. Instalar raylib en la carpeta Home del usuario (por ejemplo, /home/mj/).
 1. En la terminal, ejecutar:
 
 ````
