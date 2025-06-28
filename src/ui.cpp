@@ -1,7 +1,7 @@
 #include "ui.hpp"
 #include "game.hpp"
 #include "maze.hpp"
-#include "pathfinding.hpp"
+#include "pathFinding.hpp"
 #include <string>
 #include <cmath>
 

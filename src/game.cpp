@@ -149,6 +149,7 @@ void ResetGame() {
     auto start = FindStartPosition();
     player.row = start.first;
     player.col = start.second;
+    isAutoSolving = false;
     
     noSolution = false;
     srand(static_cast<unsigned int>(time(nullptr)));  // Inicializar semilla aleatoria

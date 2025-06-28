@@ -43,7 +43,7 @@
         {
             "name": "Linux",
             "includePath": [
-                "/home/linuxbrew/.linuxbrew/include",
+                "/usr/include",
                 "${workspaceFolder}/**"
             ],
             "defines": [
@@ -51,8 +51,16 @@
                 "UNICODE",
                 "_UNICODE",
                 "GRAPHICS_API_OPENGL_33",
-                "PLATFORM_DESKTOP"
+                "PLATFORM_DESKTOP",
+                "-lraylib",
+                "-lGL",
+                "-lm",
+                "-lpthread",
+                "-ldl",
+                "-lrt",
+                "-lX11"
             ],
+            "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "gcc-x64"
