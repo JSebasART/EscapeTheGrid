@@ -113,6 +113,14 @@ El [reporte](docs/REPORTE.md) incluye:
 - Cómo se manejó la visualización del camino más óptimo.
 - Desafíos enfrentados en el proceso y soluciones implementadas.
 
+## Video de explicación
+
+Este [video](docs/lacasadelostrucos-video.mp4) incluye:
+
+- Funcionalidades del juego.
+- Cómo se implementó el algoritmo.
+- Explicación del algoritmo utilizado.
+
 ## Licencia
 
 Este proyecto está bajo la licencia [MIT](LICENSE).
